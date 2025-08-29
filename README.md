@@ -1,4 +1,4 @@
-#🏎️Strat-e-GPT
+#Strat-e-GPT 🏎️
 Predictive Race Strategy Analysis
 🏁 Project Overview
 a machine learning project designed to assist in outlining proper race strategies by providing predictive analysis of driver and race data. Our goal is to leverage historical and real-time data to forecast race outcomes and suggest optimal strategies for competitive racing.
