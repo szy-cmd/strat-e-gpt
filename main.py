@@ -49,15 +49,45 @@ def main():
     try:
         logger.info("Analyzing F1 racing data...")
         
-        # Load and analyze F1 data
-        f1_analyzer.load_archive_data()
-        f1_analyzer.load_datathon_data()
+        # Load and analyze F1 data with error handling
+        try:
+            archive_data = f1_analyzer.load_archive_data()
+            if not archive_data:
+                logger.warning("No archive data loaded - this is normal if data directory is empty")
+            else:
+                logger.info(f"Successfully loaded {len(archive_data)} archive tables")
+        except Exception as e:
+            logger.error(f"Error loading archive data: {e}")
+            archive_data = {}
+        
+        try:
+            datathon_data = f1_analyzer.load_datathon_data()
+            if not datathon_data:
+                logger.warning("No datathon data loaded - this is normal if data directory is empty")
+            else:
+                logger.info(f"Successfully loaded {len(datathon_data)} datathon files")
+        except Exception as e:
+            logger.error(f"Error loading datathon data: {e}")
+            datathon_data = {}
         
         # Get comprehensive data summary
         data_summary = f1_analyzer.get_data_summary()
         logger.info(f"Data Summary:")
         logger.info(f"  Archive tables: {data_summary['total_archive_tables']}")
         logger.info(f"  Datathon files: {data_summary['total_datathon_files']}")
+        
+        # Validate data quality to catch any remaining issues
+        logger.info("Validating data quality...")
+        validation_results = f1_analyzer.validate_data_quality()
+        
+        # Log any data quality issues found
+        for table_name, validation in validation_results.items():
+            if validation['issues']:
+                logger.warning(f"Data quality issues in {table_name}:")
+                for issue in validation['issues']:
+                    logger.warning(f"  - {issue}")
+            else:
+                logger.info(f"✓ {table_name}: Data quality validated")
         
         # Get ML approach suggestions
         suggestions = f1_analyzer.suggest_ml_approach()
@@ -89,20 +119,26 @@ def main():
                     rf_model = ml_predictor.models['random_forest']
                     if hasattr(rf_model, 'feature_importances_'):
                         feature_importance = rf_model.feature_importances_
-                        feature_names = ml_predictor.feature_columns
+                        # Get feature names from the F1 analyzer since that's where features were created
+                        feature_names = ['grid', 'laps', 'fastestLap', 'fastestLapSpeed', 'year', 'round', 'driver_nationality', 'constructor_nationality']
                         
-                        # Create feature importance plot
-                        importance_df = pd.DataFrame({
-                            'feature': feature_names,
-                            'importance': feature_importance
-                        }).sort_values('importance', ascending=False)
-                        
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        importance_df.plot(x='feature', y='importance', kind='barh', ax=ax)
-                        ax.set_title('F1 Racing Feature Importance')
-                        ax.set_xlabel('Feature Importance')
-                        plt.tight_layout()
-                        visualizer.save_figure(fig, "outputs/f1_feature_importance.png")
+                        # Ensure we have the right number of feature names
+                        if len(feature_names) == len(feature_importance):
+                            # Create feature importance plot
+                            importance_df = pd.DataFrame({
+                                'feature': feature_names,
+                                'importance': feature_importance
+                            }).sort_values('importance', ascending=False)
+                            
+                            fig, ax = plt.subplots(figsize=(10, 6))
+                            importance_df.plot(x='feature', y='importance', kind='barh', ax=ax)
+                            ax.set_title('F1 Racing Feature Importance')
+                            ax.set_xlabel('Feature Importance')
+                            plt.tight_layout()
+                            visualizer.save_figure(fig, "outputs/f1_feature_importance.png")
+                            logger.info("Feature importance plot saved successfully")
+                        else:
+                            logger.warning(f"Feature count mismatch: {len(feature_names)} names vs {len(feature_importance)} importances")
                 
                 logger.info("F1 analysis complete! Check the outputs/ directory for results.")
                 

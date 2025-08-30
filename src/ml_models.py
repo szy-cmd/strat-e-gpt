@@ -60,6 +60,9 @@ class RaceStrategyPredictor:
     def train_models(self, X: np.ndarray, y: np.ndarray, 
                     test_size: float = 0.2) -> Dict[str, Dict]:
         """Train multiple ML models and return performance metrics"""
+        # Validate input data
+        X, y = self._validate_and_clean_data(X, y)
+        
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, random_state=42
@@ -102,6 +105,40 @@ class RaceStrategyPredictor:
             logger.info(f"{name} - R²: {r2:.4f}, RMSE: {np.sqrt(mse):.4f}")
         
         return results
+    
+    def _validate_and_clean_data(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Validate and clean input data before training"""
+        # Convert to numpy arrays if they aren't already
+        X = np.asarray(X)
+        y = np.asarray(y)
+        
+        # Check for NaN values
+        if np.isnan(X).any():
+            logger.warning("NaN values found in features. Attempting to clean...")
+            # Replace NaN with column means
+            col_means = np.nanmean(X, axis=0)
+            for i in range(X.shape[1]):
+                X[np.isnan(X[:, i]), i] = col_means[i]
+            logger.info("Replaced NaN values with column means")
+        
+        if np.isnan(y).any():
+            logger.warning("NaN values found in target. Removing affected samples...")
+            valid_mask = ~np.isnan(y)
+            X = X[valid_mask]
+            y = y[valid_mask]
+            logger.info(f"Removed {np.sum(~valid_mask)} samples with NaN targets")
+        
+        # Check for infinite values
+        if np.isinf(X).any():
+            logger.warning("Infinite values found in features. Replacing with large finite values...")
+            X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
+        
+        if np.isinf(y).any():
+            logger.warning("Infinite values found in target. Replacing with large finite values...")
+            y = np.nan_to_num(y, nan=0.0, posinf=1e6, neginf=-1e6)
+        
+        logger.info(f"Data validation complete. Final shapes: X={X.shape}, y={y.shape}")
+        return X, y
     
     def predict(self, model_name: str, X: np.ndarray) -> np.ndarray:
         """Make predictions using a trained model"""
