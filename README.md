@@ -152,7 +152,7 @@ This is a collaborative project. We welcome contributions from:
 If you encounter any issues or have questions:
 1. Check the [Issues](https://github.com/szy-cmd/strat-e-gpt/issues) page
 2. Create a new issue with detailed information
-3. Contact the team at team@strat-e-gpt.com
+
 
 ## 🔮 Future Roadmap
 
